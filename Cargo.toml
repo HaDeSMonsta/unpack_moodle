@@ -1,0 +1,12 @@
+[package]
+name = "unpack_moodle"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5.20", features = ["derive"] }
+zip = "2.2.0"
+#tar = "0.4.42"
+#flate2 = "1.0.34"
+#sevenz-rust = "0.6.1"
+#unrar = "0.5.6"
