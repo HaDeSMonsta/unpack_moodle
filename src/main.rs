@@ -36,12 +36,17 @@ fn main() {
         let filter_dir = filter.unwrap();
         let filter_list = mk_filter_list(filter_dir);
         println!("{filter_list:?}");
+        logic(&args, filter_list);
     }
 
     cleanup(&args);
 }
 
-fn init(args: &Args) {}
+fn init(args: &Args) {
+    // TODO Remove target dir, if exist
+    // TODO Remove tmp dir if exist
+    // TODO Unzip source file into temp dir
+}
 
 fn mk_filter_list(filter_path: DirEntry) -> Vec<String> {
     let file = OpenOptions::new()
@@ -64,4 +69,10 @@ fn mk_filter_list(filter_path: DirEntry) -> Vec<String> {
           .collect()
 }
 
-fn cleanup(args: &Args) {}
+fn logic(args: &Args, filter_list: Vec<String>) {
+    // TODO Search in tmp dir for name in list, extract into out dir
+}
+
+fn cleanup(args: &Args) {
+    // TODO Remove temp dir
+}
