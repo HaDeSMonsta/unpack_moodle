@@ -132,7 +132,7 @@ fn mk_filter_list<P: AsRef<Path> + Debug>(filter_path: P) -> Vec<String> {
                    .collect::<String>()
               } else { String::from(l.trim()) }
           })
-        .filter(|l| !l.is_empty())
+          .filter(|l| !l.is_empty())
           .collect()
 }
 
@@ -186,8 +186,8 @@ where
             }
             if let Some(name) = name {
                 filter_list = filter_list.into_iter()
-                    .filter(|s| *s != name)
-                    .collect();
+                                         .filter(|s| *s != name)
+                                         .collect();
             }
         }
     }
@@ -201,18 +201,36 @@ where
 
 #[allow(unused_variables)]
 fn cleanup<P: AsRef<Path>, Q: AsRef<Path>>(tmp_dir: P, out_dir: Q) -> Result<()> {
-    // CONSIDER Remove __MACOSX, Remove .idea, lib, .iml && out, Move Name/T => Name
-    
-    for lab_dir in fs::read_dir(out_dir)? {
+    // CONSIDER Remove __MACOSX, Remove .idea (vsc/jdk), lib, .iml && out, Move Name/T => Name
+
+    for lab_dir in fs::read_dir(&out_dir)? {
         let lab_dir = lab_dir?.path();
         for dir in fs::read_dir(lab_dir)? {
             let dir = dir?.path();
             let _ = fs::remove_dir_all(dir.join("__MACOSX"));
         }
     }
-    
+
+    // Is double iteration efficient? No
+    // Do I care? No (maybe)
+    // CONSIDER Add this logic to the loops above
+    for lab_dir in fs::read_dir(&out_dir)? {
+        let lab_dir = lab_dir?.path();
+        for name_dir in fs::read_dir(&lab_dir)? {
+            let name_dir = name_dir?.path();
+            let mut count = 0;
+            for dir in fs::read_dir(&name_dir)? {
+                let dir = dir?.path();
+                assert_eq!(0, count, "Each dir should only have on subdir, found more: {dir:?}");
+                count += 1;
+
+                let _ = fs::remove_dir_all(dir.join("out"));
+            }
+        }
+    }
+
     #[cfg(not(debug_assertions))]
     let _ = fs::remove_dir_all(tmp_dir);
-    
+
     Ok(())
 }
