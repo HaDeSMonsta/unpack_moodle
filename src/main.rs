@@ -39,7 +39,6 @@ fn main() -> Result<()> {
         logic(&tmp_dir, &target_dir, filter_list)?;
     }
 
-    #[cfg(not(debug_assertions))]
     cleanup(&tmp_dir);
 
     Ok(())
@@ -67,16 +66,24 @@ where
     let _ = fs::remove_dir_all(&tmp_dir);
 
     // TODO Unzip source file into temp dir
+    unzip_to(&input_zip, &tmp_dir)
+}
+
+fn unzip_to<P, Q>(zip: P, dest: Q) -> Result<()>
+where
+    P: AsRef<Path>,
+    Q: AsRef<Path>,
+{
     let file = OpenOptions::new()
         .read(true)
-        .open(&input_zip)?;
+        .open(&zip)?;
 
     let mut archive = ZipArchive::new(BufReader::new(file))?;
 
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
 
-        let out_path = tmp_dir.as_ref().join(file.enclosed_name().unwrap());
+        let out_path = dest.as_ref().join(file.enclosed_name().unwrap());
 
         if file.is_dir() {
             fs::create_dir_all(&out_path)?
@@ -130,6 +137,7 @@ fn mk_filter_list(filter_path: DirEntry) -> Vec<String> {
           .collect()
 }
 
+// TODO Group output into labs
 // CONSIDER Add Prog1Tools and .idea config for it
 fn logic<P, Q>(source_dir: P, target_dir: Q, filter_list: Vec<String>)
     -> Result<()>
@@ -137,13 +145,55 @@ where
     P: AsRef<Path>,
     Q: AsRef<Path>,
 {
-    // TODO Search in tmp dir for name in list, extract into out dir
-    
+    let source_dir = source_dir.as_ref();
+    let target_dir = target_dir.as_ref();
+
+    for entry in fs::read_dir(&source_dir)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        assert!(
+            path.is_dir(),
+            "Everything in in {:?} should be a dir, found: {:?}", source_dir, path,
+        );
+
+        let mut count = 0u8;
+
+        for file_entry in fs::read_dir(&path)? {
+            let file_entry = file_entry?;
+            let file_path = file_entry.path();
+
+            assert_eq!(count, 0, "Expected to find exactly one file, found more: {:?}", file_path);
+            count += 1;
+
+            assert_eq!(
+                Some("zip"),
+                file_path.extension().and_then(|e| e.to_str()),
+                "Expected to find a zip file, found {:?}", file_path,
+            );
+
+            let zip_dir_name = path.file_name()
+                                   .and_then(|f| f.to_str())
+                                   .unwrap_or("");
+
+            for filter in &filter_list {
+                println!("File name: {zip_dir_name:?}\nFilter: {filter}");
+                if zip_dir_name.contains(filter) {
+                    let target_subdir = target_dir.join(&filter);
+                    fs::create_dir_all(&target_subdir)?;
+                    unzip_to(&file_path, &target_subdir)?;
+                    break;
+                }
+            }
+        }
+    }
+
     Ok(())
 }
 
-#[cfg(not(debug_assertions))]
+#[allow(unused_variables)]
 fn cleanup<P: AsRef<Path>>(tmp_dir: P) {
-    // TODO Remove temp dir
+    // CONSIDER Remove __MACOSX, Remove .idea, lib, .iml && out, Move Name/T => Name
+    #[cfg(not(debug_assertions))]
     let _ = fs::remove_dir_all(tmp_dir);
 }
