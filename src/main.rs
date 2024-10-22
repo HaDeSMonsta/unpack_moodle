@@ -1,5 +1,6 @@
 use clap::Parser;
-use std::fs::{DirEntry, OpenOptions};
+use std::fmt::Debug;
+use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, Result};
 use std::path::Path;
 use std::{fs, io};
@@ -26,17 +27,19 @@ struct Args {
 }
 
 fn main() -> Result<()> {
-    let (filter_dir, input_zip, target_dir, tmp_dir) = parse_args();
+    let (filter_dir, input_zip, target_root_dir, tmp_dir) = parse_args();
 
-    init(&target_dir, &tmp_dir, &input_zip)?;
+    init(&target_root_dir, &tmp_dir, &input_zip)?;
 
     let filters = fs::read_dir(&filter_dir)?;
 
     for filter in filters {
         let filter_dir = filter?;
-        let filter_list = mk_filter_list(filter_dir);
-        println!("{filter_list:?}");
-        logic(&tmp_dir, &target_dir, filter_list)?;
+        let filter_list = mk_filter_list(filter_dir.path());
+        let target_name = filter_dir.file_name();
+        let target_stem = Path::new(&target_name).file_stem().unwrap();
+        let target_path = Path::new(&target_root_dir).join(target_stem);
+        logic(&tmp_dir, &target_path, filter_list)?;
     }
 
     cleanup(&tmp_dir);
@@ -57,15 +60,10 @@ where
     Q: AsRef<Path>,
     R: AsRef<Path>,
 {
-    // Remove target dir, if exist
-    // Error if dir does not exist, we don't care
     let _ = fs::remove_dir_all(&target_dir);
 
-    // Remove tmp dir if exist
-    // We know tmp_dir_name is some, but this is the only way to not move out of args
     let _ = fs::remove_dir_all(&tmp_dir);
 
-    // TODO Unzip source file into temp dir
     unzip_to(&input_zip, &tmp_dir)
 }
 
@@ -116,11 +114,11 @@ where
     Ok(())
 }
 
-fn mk_filter_list(filter_path: DirEntry) -> Vec<String> {
+fn mk_filter_list<P: AsRef<Path> + Debug>(filter_path: P) -> Vec<String> {
     let file = OpenOptions::new()
         .read(true)
-        .open(filter_path.path())
-        .expect(&format!("Unable to open {:?}", filter_path.path()));
+        .open(filter_path.as_ref())
+        .expect(&format!("Unable to open {:?}", filter_path));
     let reader = BufReader::new(file);
 
     reader.lines()
@@ -137,7 +135,6 @@ fn mk_filter_list(filter_path: DirEntry) -> Vec<String> {
           .collect()
 }
 
-// TODO Group output into labs
 // CONSIDER Add Prog1Tools and .idea config for it
 fn logic<P, Q>(source_dir: P, target_dir: Q, filter_list: Vec<String>)
     -> Result<()>
@@ -177,7 +174,6 @@ where
                                    .unwrap_or("");
 
             for filter in &filter_list {
-                println!("File name: {zip_dir_name:?}\nFilter: {filter}");
                 if zip_dir_name.contains(filter) {
                     let target_subdir = target_dir.join(&filter);
                     fs::create_dir_all(&target_subdir)?;
