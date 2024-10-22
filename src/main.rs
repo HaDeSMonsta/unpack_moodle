@@ -132,11 +132,12 @@ fn mk_filter_list<P: AsRef<Path> + Debug>(filter_path: P) -> Vec<String> {
                    .collect::<String>()
               } else { String::from(l.trim()) }
           })
+        .filter(|l| !l.is_empty())
           .collect()
 }
 
 // CONSIDER Add Prog1Tools and .idea config for it
-fn logic<P, Q>(source_dir: P, target_dir: Q, filter_list: Vec<String>)
+fn logic<P, Q>(source_dir: P, target_dir: Q, mut filter_list: Vec<String>)
     -> Result<()>
 where
     P: AsRef<Path>,
@@ -173,15 +174,26 @@ where
                                    .and_then(|f| f.to_str())
                                    .unwrap_or("");
 
+            let mut name = None;
             for filter in &filter_list {
                 if zip_dir_name.contains(filter) {
                     let target_subdir = target_dir.join(&filter);
                     fs::create_dir_all(&target_subdir)?;
                     unzip_to(&file_path, &target_subdir)?;
+                    name = Some(filter.clone());
                     break;
                 }
             }
+            if let Some(name) = name {
+                filter_list = filter_list.into_iter()
+                    .filter(|s| *s != name)
+                    .collect();
+            }
         }
+    }
+
+    for name in filter_list {
+        eprintln!("Unable to find {name}");
     }
 
     Ok(())
