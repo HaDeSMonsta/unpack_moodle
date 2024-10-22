@@ -42,7 +42,7 @@ fn main() -> Result<()> {
         logic(&tmp_dir, &target_path, filter_list)?;
     }
 
-    cleanup(&tmp_dir);
+    cleanup(&tmp_dir, &target_root_dir)?;
 
     Ok(())
 }
@@ -188,8 +188,19 @@ where
 }
 
 #[allow(unused_variables)]
-fn cleanup<P: AsRef<Path>>(tmp_dir: P) {
+fn cleanup<P: AsRef<Path>, Q: AsRef<Path>>(tmp_dir: P, out_dir: Q) -> Result<()> {
     // CONSIDER Remove __MACOSX, Remove .idea, lib, .iml && out, Move Name/T => Name
+    
+    for lab_dir in fs::read_dir(out_dir)? {
+        let lab_dir = lab_dir?.path();
+        for dir in fs::read_dir(lab_dir)? {
+            let dir = dir?.path();
+            let _ = fs::remove_dir_all(dir.join("__MACOSX"));
+        }
+    }
+    
     #[cfg(not(debug_assertions))]
     let _ = fs::remove_dir_all(tmp_dir);
+    
+    Ok(())
 }
