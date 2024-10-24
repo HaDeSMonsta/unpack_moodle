@@ -9,6 +9,7 @@ use zip::ZipArchive;
 /// Extract and filter moodle submissions based
 /// on input lists
 #[derive(Parser)]
+#[command(version)]
 struct Args {
     /// Dir of the filter lists,
     /// supports comments via //,
@@ -234,3 +235,4 @@ fn cleanup<P: AsRef<Path>, Q: AsRef<Path>>(tmp_dir: P, out_dir: Q) -> Result<()>
 
     Ok(())
 }
+
