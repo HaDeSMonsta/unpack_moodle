@@ -8,23 +8,23 @@ use zip::ZipArchive;
 
 /// Extract and filter moodle submissions based
 /// on input lists
-#[derive(Parser)]
+#[derive(Debug, Parser)]
 #[command(version)]
 struct Args {
     /// Dir of the filter lists,
     /// supports comments via //,
     /// (No support for multi line comments)
-    #[arg(short, long)]
+    #[arg(short, long, default_value = "filter/")]
     filter: String,
     /// Where to find the input zip file
-    #[arg(short, long)]
+    #[arg(short, long, default_value = "submissions.zip")]
     source: String,
     /// Where to put the result
-    #[arg(short, long)]
+    #[arg(short, long, default_value = "out/")]
     target: String,
-    /// Optional: Where to put the temp file (default = tmp)
-    #[arg(long)]
-    tmp_dir_name: Option<String>,
+    /// Optional: Where to put the temp file
+    #[arg(long, default_value = "tmp/")]
+    tmp_dir_name: String,
 }
 
 fn main() -> Result<()> {
@@ -34,6 +34,7 @@ fn main() -> Result<()> {
 
     let filters = fs::read_dir(&filter_dir)?;
 
+    // CONSIDER Ignore file
     for filter in filters {
         let filter_dir = filter?;
         let filter_list = mk_filter_list(filter_dir.path());
@@ -45,13 +46,14 @@ fn main() -> Result<()> {
 
     cleanup(&tmp_dir, &target_root_dir)?;
 
+    println!("Program is done, thank you for your patience");
+
     Ok(())
 }
 
 fn parse_args() -> (String, String, String, String) {
     let args = Args::parse();
-    let tmp = args.tmp_dir_name.unwrap_or(String::from("tmp/"));
-    (args.filter, args.source, args.target, tmp)
+    (args.filter, args.source, args.target, args.tmp_dir_name)
 }
 
 fn init<P, Q, R>(target_dir: P, tmp_dir: Q, input_zip: R)
@@ -166,8 +168,10 @@ where
             count += 1;
 
             assert_eq!(
-                Some("zip"),
-                file_path.extension().and_then(|e| e.to_str()),
+                Some(String::from("zip")),
+                file_path.extension()
+                    .and_then(|e| e.to_str())
+                    .and_then(|e| Some(e.to_ascii_lowercase())),
                 "Expected to find a zip file, found {:?}", file_path,
             );
 

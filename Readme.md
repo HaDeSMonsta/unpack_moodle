@@ -8,7 +8,7 @@ The binary will be in `target/release/unpack_moodle`
 
 # Usage
 
-The binary takes 3 arguments (like in the justfile).
+The binary takes up to 4 arguments
 
 To see the docs, run
 
