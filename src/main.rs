@@ -3,6 +3,7 @@ use std::fmt::Debug;
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, Result};
 use std::path::Path;
+use std::time::Instant;
 use std::{fs, io};
 use zip::ZipArchive;
 
@@ -28,6 +29,7 @@ struct Args {
 }
 
 fn main() -> Result<()> {
+    let now = Instant::now();
     let (filter_dir, input_zip, target_root_dir, tmp_dir) = parse_args();
 
     init(&target_root_dir, &tmp_dir, &input_zip)?;
@@ -46,7 +48,8 @@ fn main() -> Result<()> {
 
     cleanup(&tmp_dir, &target_root_dir)?;
 
-    println!("Program is done, thank you for your patience");
+    let dur = now.elapsed();
+    println!("Program is done, thank you for your patience ({} ms)", dur.as_millis());
 
     Ok(())
 }
